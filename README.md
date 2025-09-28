@@ -157,24 +157,14 @@ This project is for educational and internal demo purposes.
 
 **Ready to supercharge your sales prospecting? Spin up your own AI-Powered Lead Generation Agent and turn manual lead searches into instant, qualified opportunities!**
 
----
-
 <p align="center">
-  <img src="https://brightdata.com/static/img/logo.svg" width="150" alt="Bright Data Logo" />
+  <a href="https://brightdata.com/cp/start" target="_blank" style="text-decoration:none;">
+    <img src="https://img.shields.io/badge/Get%20Started-%233D7FFC?style=for-the-badge&logo=rocket&logoColor=white" alt="Get Started" style="height: 48px; border-radius: 8px;">
+  </a>
 </p>
 
 ---
 
-<details>
-<summary>Click for full technical article & implementation guide (included in repo)</summary>
 
-See attached `clipboard.txt` for a comprehensive step-by-step tutorial covering:
-- AI lead generation concepts
-- Traditional vs. AI-powered workflows
-- Example code snippets with best practices
-- Automation of qualification, scoring, engagement, and follow-up
-</details>
-
----
 
 **Made with ❤️ using Bright Data & OpenAI**
