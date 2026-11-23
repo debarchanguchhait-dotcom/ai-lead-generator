@@ -66,7 +66,7 @@ with tab1:
     with col1:
         target_audience = st.text_input("Describe your Ideal Customer", placeholder="e.g., Real estate agencies in Kolkata")
     with col2:
-        num_leads = st.number_input("Leads to find", min_value=3, max_value=15, value=5)
+        num_leads = st.number_input("Leads to find", min_value=1, max_value=15, value=3)
 
     if st.button("🔍 Find & Qualify Leads", type="primary"):
         if not gemini_key:
@@ -75,7 +75,7 @@ with tab1:
             st.warning("Enter your Ideal Customer above and 'What do you sell?' in the sidebar.")
         else:
             try:
-                client = genai.Client(api_key=gemini_key)
+                client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1beta"})
                 with st.status("Searching & qualifying leads...", expanded=True) as status:
                     q_res = client.models.generate_content(
                         model="gemini-2.5-flash",
@@ -86,7 +86,7 @@ with tab1:
                     with DDGS() as ddgs:
                         for q in json.loads(q_res.text):
                             st.write(f"🌐 Searching: `{q}`")
-                            raw_results.extend(list(ddgs.text(q, max_results=int(num_leads))))
+                            raw_results.extend(list(ddgs.text(q, max_results=max(3, int(num_leads)))))
 
                     if not raw_results:
                         st.error("No results found. Try a broader description.")
@@ -139,7 +139,7 @@ with tab2:
             st.error("Owner must add a Gemini API key in the sidebar first.")
         else:
             try:
-                client = genai.Client(api_key=gemini_key)
+                client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1beta"})
                 q_prompt = (
                     f"Qualify this lead for {company_name} ({offer_desc}): Name={name}, Email={email}, Company={company}, Msg={message}. "
                     f"Return JSON with keys: intent_score (1-10), suggested_reply (warm 3-sentence reply)."
@@ -159,4 +159,4 @@ with tab2:
                     st.caption(f"🔔 Owner alerted via: {', '.join(channels)}")
             except Exception as e:
                 st.error(f"Error: {e}")
-        
+                       
