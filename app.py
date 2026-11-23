@@ -32,6 +32,23 @@ with st.sidebar:
     tg_chat_id = st.text_input("Telegram Chat ID (Optional)", placeholder="123456789")
 
 
+def ask_gemini(client, prompt):
+    for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+        try:
+            res = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            return json.loads(res.text)
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                time.sleep(2)
+                continue
+            raise e
+    raise RuntimeError("AI servers are temporarily busy. Please try again in 5 seconds.")
+
+
 def send_owner_alert(lead):
     channels = []
     msg = (
@@ -65,9 +82,6 @@ def send_owner_alert(lead):
         except Exception:
             pass
     return channels
-
-    
-        
 
 
 tab1, tab2 = st.tabs(["🚀 Outbound Lead Finder", "📩 Inbound Interest Capture"])
