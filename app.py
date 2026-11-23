@@ -12,26 +12,36 @@ st.set_page_config(page_title="AI Lead Gen & Alert Agent", page_icon="🎯", lay
 st.title("🎯 AI Lead Generation & Interest Alert Agent")
 st.caption("100% Free Stack • Outbound Prospecting + Instant Inbound Alerts")
 
+# Load saved settings from browser URL so minimizing/refreshing never clears them
+qp = st.query_params
+
 with st.sidebar:
     st.header("1. AI Setup (Required)")
-    gemini_key = st.text_input("Free Google Gemini API Key", type="password")
+    gemini_key = st.text_input("Free Google Gemini API Key", value=qp.get("key", ""), type="password")
     st.markdown("[Get a free Gemini API key →](https://google.com)")
     st.divider()
     st.header("2. Business & Booking Info")
-    company_name = st.text_input("Business Name", placeholder="e.g., Acme Solutions")
-    offer_desc = st.text_area("What do you sell?", placeholder="e.g., AI lead generation systems")
-    booking_link = st.text_input("Calendar Link (Optional)", placeholder="https://cal.com")
+    company_name = st.text_input("Business Name", value=qp.get("biz", ""), placeholder="e.g., Acme Solutions")
+    offer_desc = st.text_area("What do you sell?", value=qp.get("offer", ""), placeholder="e.g., AI lead generation systems")
+    booking_link = st.text_input("Calendar Link (Optional)", value=qp.get("cal", ""), placeholder="https://cal.com")
     st.divider()
     st.header("3. Instant Owner Alerts (Free)")
-    ntfy_topic = st.text_input(
-        "Free Phone/Web Alert Topic (ntfy.sh)",
-        placeholder="e.g., deba-leads-9732",
-        help="Open ntfy.sh/your-topic on your phone or browser to receive instant push alerts."
-    )
-    tg_bot_token = st.text_input("Telegram Bot Token (Optional)", type="password")
-    tg_chat_id = st.text_input("Telegram Chat ID (Optional)", placeholder="123456789")
+    ntfy_topic = st.text_input("Free Phone/Web Alert Topic (ntfy.sh)", value=qp.get("ntfy", ""), placeholder="e.g., deba-leads-9732")
+    tg_bot_token = st.text_input("Telegram Bot Token (Optional)", value=qp.get("tg_tok", ""), type="password")
+    tg_chat_id = st.text_input("Telegram Chat ID (Optional)", value=qp.get("tg_id", ""), placeholder="123456789")
 
-
+    if st.button("💾 Save Settings to Browser", use_container_width=True):
+        st.query_params.update({
+            "key": gemini_key,
+            "biz": company_name,
+            "offer": offer_desc,
+            "cal": booking_link,
+            "ntfy": ntfy_topic,
+            "tg_tok": tg_bot_token,
+            "tg_id": tg_chat_id,
+        })
+        st.success("✅ Saved! Bookmark this page so your settings stay forever.")
+        
 def ask_gemini(client, prompt):
     for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
         try:
