@@ -29,7 +29,6 @@ with st.sidebar:
 
 
 def ask_gemini(client, prompt):
-    """Calls gemini-2.5-flash and automatically falls back to gemini-2.5-flash-lite if busy (503)."""
     for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
         try:
             res = client.models.generate_content(
@@ -43,7 +42,7 @@ def ask_gemini(client, prompt):
                 time.sleep(2)
                 continue
             raise e
-    raise RuntimeError("AI servers are temporarily busy. Please click the button again in 5 seconds.")
+    raise RuntimeError("AI servers are temporarily busy. Please try again in 5 seconds.")
 
 
 def send_owner_alert(lead):
@@ -96,23 +95,28 @@ with tab1:
             try:
                 client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1beta"})
                 with st.status("Searching & qualifying leads...", expanded=True) as status:
-                    queries = ask_gemini(
+                    ai_queries = ask_gemini(
                         client,
-                        f"Generate 3 web search queries to find specific company websites matching '{target_audience}'. Return ONLY a JSON list of 3 strings."
+                        f"Generate 2 simple 3-word Google search queries for '{target_audience}'. Do NOT use words like 'official' or 'websites'. Return ONLY a JSON list of 2 strings."
                     )
+                    queries = [target_audience] + ai_queries[:2]
                     raw_results = []
                     with DDGS() as ddgs:
                         for q in queries:
                             st.write(f"🌐 Searching: `{q}`")
-                            raw_results.extend(list(ddgs.text(q, max_results=10)))
+                            try:
+                                raw_results.extend(list(ddgs.text(q, max_results=8)))
+                            except Exception:
+                                pass
+                            time.sleep(1)
 
                     if not raw_results:
-                        st.error("No results found. Try a broader description.")
+                        st.error("Search engine rate-limited temporarily. Wait 5 seconds and click Find & Qualify Leads again.")
                         st.stop()
 
                     cta = f"End by inviting them to book a call: {booking_link}" if booking_link else "End by asking for a quick 10-min chat."
                     prompt = (
-                        f"Extract up to {int(num_leads)} distinct real businesses (skip directories like Justdial/Magicbricks) matching '{target_audience}' from: {json.dumps(raw_results[:30])}. "
+                        f"Extract up to {int(num_leads)} distinct real businesses matching '{target_audience}' from: {json.dumps(raw_results[:25])}. "
                         f"Sender: {company_name}, Offer: {offer_desc}. "
                         f"Return JSON array with keys: lead_name, contact_email, website, fit_score (1-10), fit_reason, email_subject, email_body (3 sentences. {cta})."
                     )
@@ -167,4 +171,4 @@ with tab2:
                     st.caption(f"🔔 Owner alerted via: {', '.join(channels)}")
             except Exception as e:
                 st.error(f"Error: {e}")
-    
+                
