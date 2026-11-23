@@ -88,9 +88,7 @@ def send_owner_alert(lead):
             pass
     return channels
     
-        except Exception:
-            pass
-    return channels
+        
 
 
 tab1, tab2 = st.tabs(["🚀 Outbound Lead Finder", "📩 Inbound Interest Capture"])
