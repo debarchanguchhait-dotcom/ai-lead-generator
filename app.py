@@ -54,23 +54,40 @@ def send_owner_alert(lead):
     )
     if tg_bot_token and tg_chat_id:
         try:
-            requests.post(
+            r = requests.post(
                 f"https://telegram.org{tg_bot_token}/sendMessage",
                 json={"chat_id": tg_chat_id, "text": msg},
                 timeout=10
             )
-            channels.append("Telegram")
+            if r.ok:
+                channels.append("Telegram")
         except Exception:
             pass
     if alert_email:
         try:
-            requests.post(
-                f"https://formsubmit.co{alert_email}",
-                json={"_subject": f"🔥 Hot Lead: {lead.get('name')}", **lead},
-                headers={"Accept": "application/json"},
+            r = requests.post(
+                f"https://formsubmit.co{alert_email.strip()}",
+                json={
+                    "_subject": f"🔥 Hot Lead: {lead.get('name')}",
+                    "_template": "table",
+                    "Name": lead.get("name"),
+                    "Email": lead.get("email"),
+                    "Company / Phone": lead.get("company"),
+                    "Intent Score": f"{lead.get('intent_score')}/10",
+                    "Message": lead.get("message")
+                },
+                headers={
+                    "Accept": "application/json",
+                    "Referer": "https://streamlit.app"
+                },
                 timeout=10
             )
-            channels.append("Email")
+            if r.ok:
+                channels.append("Email")
+        except Exception:
+            pass
+    return channels
+    
         except Exception:
             pass
     return channels
