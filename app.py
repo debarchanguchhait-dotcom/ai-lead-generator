@@ -12,7 +12,6 @@ st.set_page_config(page_title="AI Lead Generation & Alert Agent", page_icon="�
 st.title("🎯 AI Lead Generation & Interest Alert Agent")
 st.caption("100% Free Stack • Outbound Prospecting + Instant Inbound Alerts")
 
-# --- SIDEBAR: Owner Configuration ---
 with st.sidebar:
     st.header("1. AI Setup (Required)")
     gemini_key = st.text_input(
@@ -21,7 +20,7 @@ with st.sidebar:
         help="Get a free key at ://google.com"
     )
     st.markdown("[Get a free Gemini API key →](https://://google.com)")
-    
+
     st.divider()
     st.header("2. Business & Booking Info")
     company_name = st.text_input("Business Name", placeholder="e.g., Acme Solutions")
@@ -33,7 +32,7 @@ with st.sidebar:
         "Calendar Booking Link (Optional)",
         placeholder="e.g., https://cal.com"
     )
-    
+
     st.divider()
     st.header("3. Instant Owner Alerts (Free)")
     st.caption("Get notified immediately when an inbound lead is interested:")
@@ -41,8 +40,8 @@ with st.sidebar:
     tg_bot_token = st.text_input("Telegram Bot Token (Optional)", type="password")
     tg_chat_id = st.text_input("Telegram Chat ID (Optional)", placeholder="e.g., 123456789")
 
+
 def send_owner_alert(lead_info: dict):
-    """Sends a free instant notification via Telegram and/or FormSubmit email."""
     sent_channels = []
     summary_text = (
         f"🔥 NEW INTERESTED LEAD ({lead_info.get('intent_score', 'N/A')}/10)\n"
@@ -52,8 +51,7 @@ def send_owner_alert(lead_info: dict):
         f"Need: {lead_info.get('message')}\n"
         f"AI Summary: {lead_info.get('ai_summary')}"
     )
-    
-    # 1. Instant Telegram Alert (Free)
+
     if tg_bot_token and tg_chat_id:
         try:
             tg_url = f"https://telegram.org{tg_bot_token}/sendMessage"
@@ -62,7 +60,6 @@ def send_owner_alert(lead_info: dict):
         except Exception:
             pass
 
-    # 2. Instant Free Email Alert via FormSubmit (Zero SMTP setup needed)
     if alert_email:
         try:
             mail_url = f"https://formsubmit.co{alert_email}"
@@ -83,15 +80,12 @@ def send_owner_alert(lead_info: dict):
             sent_channels.append("Email")
         except Exception:
             pass
-            
+
     return sent_channels
 
-# --- TWO MODES: Outbound vs. Inbound ---
+
 tab1, tab2 = st.tabs(["🚀 Outbound Lead Finder", "📩 Inbound Interest Capture"])
 
-# ==========================================
-# TAB 1: OUTBOUND PROSPECTING + GMAIL LINKS
-# ==========================================
 with tab1:
     st.subheader("Find Prospects & Send 1-Click Outreach")
     col1, col2 = st.columns([3, 1])
@@ -112,10 +106,11 @@ with tab1:
             try:
                 client = genai.Client(api_key=gemini_key)
                 with st.status("Searching live web & qualifying leads...", expanded=True) as status:
-                    q_prompt = f"""
-                    Generate 3 targeted web search queries to find real companies, founders, and public contact emails matching: '{target_audience}'.
-                    Return ONLY a JSON array of 3 strings.
-                    """
+                    q_prompt = (
+                        f"Generate 3 targeted web search queries to find real companies, founders, "
+                        f"and public contact emails matching: '{target_audience}'. "
+                        f"Return ONLY a JSON array of 3 strings."
+                    )
                     q_res = client.models.generate_content(
                         model="gemini-2.5-flash",
                         contents=q_prompt,
@@ -142,10 +137,10 @@ with tab1:
                     extract_prompt = f"""
                     Analyze these search results and extract up to {int(num_leads)} real businesses/decision-makers matching '{target_audience}'.
                     Search Results: {json.dumps(raw_results[:25])}
-                    
+
                     Sender Company: {company_name}
                     Sender Offer: {offer_desc}
-                    
+
                     Return a JSON array of objects with exact keys:
                     - "lead_name": Company or person name
                     - "contact_email": Public email found in snippet (or "" if none found)
@@ -164,46 +159,64 @@ with tab1:
                     status.update(label="✅ Leads ready!", state="complete", expanded=False)
 
                 df = pd.DataFrame(leads_data)
-                st.dataframe(df[["lead_name", "contact_email", "website", "fit_score", "fit_reason"]], use_container_width=True)
+                st.dataframe(
+                    df[["lead_name", "contact_email", "website", "fit_score", "fit_reason"]],
+                    use_container_width=True
+                )
 
                 st.subheader("📬 1-Click Outreach & Replies")
-                st.caption("Click 'Open in Gmail' to send directly from your inbox—when they reply or book your calendar link, you'll know immediately.")
-                
+                st.caption("Click 'Open & Send in Gmail' to send directly from your inbox.")
+
                 for idx, lead in enumerate(leads_data):
                     with st.expander(f"⭐ {lead['fit_score']}/10 — {lead['lead_name']} ({lead['website']})"):
                         st.write(f"**Why they fit:** {lead['fit_reason']}")
                         st.text_input("Subject", value=lead["email_subject"], key=f"subj_{idx}")
                         st.text_area("Drafted Email", value=lead["email_body"], height=120, key=f"body_{idx}")
-                        
-                        # Build 1-click Gmail compose link
+
                         to_email = urllib.parse.quote(lead.get("contact_email", ""))
                         subj_enc = urllib.parse.quote(lead["email_subject"])
                         body_enc = urllib.parse.quote(lead["email_body"])
                         gmail_url = f"https://google.com{to_email}&su={subj_enc}&body={body_enc}"
-                        
+
                         st.link_button("✉️ Open & Send in Gmail", gmail_url)
 
                 csv = df.to_csv(index=False).encode("utf-8")
-                st.download_button("📥 Download All Leads (CSV)", data=csv, file_name="qualified_leads.csv", mime="text/csv")
+                st.download_button(
+                    "📥 Download All Leads (CSV)",
+                    data=csv,
+                    file_name="qualified_leads.csv",
+                    mime="text/csv"
+                )
 
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# ==========================================
-# TAB 2: INBOUND INTEREST CAPTURE & ALERTS
-# ==========================================
 with tab2:
     st.subheader(f"Get in Touch with {company_name or 'Us'}")
     st.write("Tell us what you're looking for, and our AI assistant will qualify your request and alert our team immediately.")
-    
+
     with st.form("inbound_lead_form"):
         lead_name = st.text_input("Your Name *")
         lead_email = st.text_input("Work Email *")
         lead_company = st.text_input("Company Name / Phone Number")
         lead_message = st.text_area("How can we help you? (Project details, budget, timeline) *")
         submitted = st.form_submit_button("Submit Inquiry", type="primary")
-        
+
     if submitted:
         if not lead_name or not lead_email or not lead_message:
             st.warning("Please fill in your Name, Email, and Message.")
         elif not gemini_key:
+            st.error("Setup incomplete: Owner must add a Gemini API key in the sidebar.")
+        else:
+            try:
+                client = genai.Client(api_key=gemini_key)
+                qualify_prompt = f"""
+                A potential customer submitted an inquiry for {company_name} (Offer: {offer_desc}).
+                Name: {lead_name}
+                Email: {lead_email}
+                Company/Phone: {lead_company}
+                Message: {lead_message}
+
+                Return a JSON object with:
+                - "intent_score": Integer 1-10 (10 = ready to buy now)
+            
