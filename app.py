@@ -62,7 +62,7 @@ tab1, tab2 = st.tabs(["🚀 Outbound Lead Finder", "📩 Inbound Interest Captur
 
 with tab1:
     st.subheader("Find Prospects & Send 1-Click Outreach")
-    col1, col2 = st.columns()
+    col1, col2 = st.columns(2)
     with col1:
         target_audience = st.text_input("Describe your Ideal Customer", placeholder="e.g., Real estate agencies in Kolkata")
     with col2:
