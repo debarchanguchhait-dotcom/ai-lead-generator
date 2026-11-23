@@ -1,4 +1,5 @@
 import json
+import time
 import urllib.parse
 import requests
 import pandas as pd
@@ -25,6 +26,24 @@ with st.sidebar:
     alert_email = st.text_input("Owner Notification Email", placeholder="you@yourdomain.com")
     tg_bot_token = st.text_input("Telegram Bot Token (Optional)", type="password")
     tg_chat_id = st.text_input("Telegram Chat ID (Optional)", placeholder="123456789")
+
+
+def ask_gemini(client, prompt):
+    """Calls gemini-2.5-flash and automatically falls back to gemini-2.5-flash-lite if busy (503)."""
+    for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+        try:
+            res = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            return json.loads(res.text)
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                time.sleep(2)
+                continue
+            raise e
+    raise RuntimeError("AI servers are temporarily busy. Please click the button again in 5 seconds.")
 
 
 def send_owner_alert(lead):
@@ -77,16 +96,15 @@ with tab1:
             try:
                 client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1beta"})
                 with st.status("Searching & qualifying leads...", expanded=True) as status:
-                    q_res = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=f"Generate 3 web search queries to find businesses matching '{target_audience}'. Return ONLY a JSON list of 3 strings.",
-                        config=types.GenerateContentConfig(response_mime_type="application/json")
+                    queries = ask_gemini(
+                        client,
+                        f"Generate 3 web search queries to find specific company websites matching '{target_audience}'. Return ONLY a JSON list of 3 strings."
                     )
                     raw_results = []
                     with DDGS() as ddgs:
-                        for q in json.loads(q_res.text):
+                        for q in queries:
                             st.write(f"🌐 Searching: `{q}`")
-                            raw_results.extend(list(ddgs.text(q, max_results=max(3, int(num_leads)))))
+                            raw_results.extend(list(ddgs.text(q, max_results=10)))
 
                     if not raw_results:
                         st.error("No results found. Try a broader description.")
@@ -94,16 +112,11 @@ with tab1:
 
                     cta = f"End by inviting them to book a call: {booking_link}" if booking_link else "End by asking for a quick 10-min chat."
                     prompt = (
-                        f"Extract up to {int(num_leads)} real businesses matching '{target_audience}' from: {json.dumps(raw_results[:20])}. "
+                        f"Extract up to {int(num_leads)} distinct real businesses (skip directories like Justdial/Magicbricks) matching '{target_audience}' from: {json.dumps(raw_results[:30])}. "
                         f"Sender: {company_name}, Offer: {offer_desc}. "
                         f"Return JSON array with keys: lead_name, contact_email, website, fit_score (1-10), fit_reason, email_subject, email_body (3 sentences. {cta})."
                     )
-                    leads_res = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=prompt,
-                        config=types.GenerateContentConfig(response_mime_type="application/json")
-                    )
-                    leads_data = json.loads(leads_res.text)
+                    leads_data = ask_gemini(client, prompt)
                     status.update(label="✅ Leads ready!", state="complete", expanded=False)
 
                 df = pd.DataFrame(leads_data)
@@ -144,12 +157,7 @@ with tab2:
                     f"Qualify this lead for {company_name} ({offer_desc}): Name={name}, Email={email}, Company={company}, Msg={message}. "
                     f"Return JSON with keys: intent_score (1-10), suggested_reply (warm 3-sentence reply)."
                 )
-                res = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=q_prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json")
-                )
-                data = json.loads(res.text)
+                data = ask_gemini(client, q_prompt)
                 channels = send_owner_alert({"name": name, "email": email, "company": company, "message": message, **data})
                 st.success("✅ Inquiry received!")
                 st.info(data["suggested_reply"])
@@ -159,4 +167,4 @@ with tab2:
                     st.caption(f"🔔 Owner alerted via: {', '.join(channels)}")
             except Exception as e:
                 st.error(f"Error: {e}")
-                       
+    
