@@ -21,37 +21,38 @@ with st.sidebar:
     company_name = st.text_input("Business Name", placeholder="e.g., Acme Solutions")
     offer_desc = st.text_area("What do you sell?", placeholder="e.g., AI lead generation systems")
     booking_link = st.text_input("Calendar Link (Optional)", placeholder="https://cal.com")
-    st.divider()
+        st.divider()
     st.header("3. Instant Owner Alerts (Free)")
-    alert_email = st.text_input("Owner Notification Email", placeholder="you@yourdomain.com")
+    ntfy_topic = st.text_input(
+        "Free Phone/Web Alert Topic (ntfy.sh)",
+        placeholder="e.g., deba-leads-9732",
+        help="Open ntfy.sh/your-topic on your phone or browser to receive instant push alerts."
+    )
     tg_bot_token = st.text_input("Telegram Bot Token (Optional)", type="password")
     tg_chat_id = st.text_input("Telegram Chat ID (Optional)", placeholder="123456789")
-
-
-def ask_gemini(client, prompt):
-    for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
-        try:
-            res = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
-            return json.loads(res.text)
-        except Exception as e:
-            if "503" in str(e) or "UNAVAILABLE" in str(e):
-                time.sleep(2)
-                continue
-            raise e
-    raise RuntimeError("AI servers are temporarily busy. Please try again in 5 seconds.")
 
 
 def send_owner_alert(lead):
     channels = []
     msg = (
         f"🔥 HOT LEAD ({lead.get('intent_score', 'N/A')}/10)\n"
-        f"Name: {lead.get('name')}\nEmail: {lead.get('email')}\n"
-        f"Company/Phone: {lead.get('company')}\nNeed: {lead.get('message')}"
+        f"Name: {lead.get('name')}\n"
+        f"Email: {lead.get('email')}\n"
+        f"Company/Phone: {lead.get('company')}\n"
+        f"Need: {lead.get('message')}"
     )
+    if ntfy_topic:
+        try:
+            r = requests.post(
+                f"https://ntfy.sh{ntfy_topic.strip()}",
+                data=msg.encode("utf-8"),
+                headers={"Title": f"New Lead: {lead.get('name')}"},
+                timeout=10
+            )
+            if r.ok:
+                channels.append(f"ntfy.sh/{ntfy_topic.strip()}")
+        except Exception:
+            pass
     if tg_bot_token and tg_chat_id:
         try:
             r = requests.post(
@@ -63,30 +64,8 @@ def send_owner_alert(lead):
                 channels.append("Telegram")
         except Exception:
             pass
-    if alert_email:
-        try:
-            r = requests.post(
-                f"https://formsubmit.co{alert_email.strip()}",
-                json={
-                    "_subject": f"🔥 Hot Lead: {lead.get('name')}",
-                    "_template": "table",
-                    "Name": lead.get("name"),
-                    "Email": lead.get("email"),
-                    "Company / Phone": lead.get("company"),
-                    "Intent Score": f"{lead.get('intent_score')}/10",
-                    "Message": lead.get("message")
-                },
-                headers={
-                    "Accept": "application/json",
-                    "Referer": "https://streamlit.app"
-                },
-                timeout=10
-            )
-            if r.ok:
-                channels.append("Email")
-        except Exception:
-            pass
     return channels
+
     
         
 
