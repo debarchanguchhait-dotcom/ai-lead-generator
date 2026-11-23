@@ -12,7 +12,6 @@ st.set_page_config(page_title="AI Lead Gen & Alert Agent", page_icon="🎯", lay
 st.title("🎯 AI Lead Generation & Interest Alert Agent")
 st.caption("100% Free Stack • Outbound Prospecting + Instant Inbound Alerts")
 
-# Load saved settings from browser URL so minimizing/refreshing never clears them
 qp = st.query_params
 
 with st.sidebar:
@@ -26,7 +25,8 @@ with st.sidebar:
     booking_link = st.text_input("Calendar Link (Optional)", value=qp.get("cal", ""), placeholder="https://cal.com")
     st.divider()
     st.header("3. Instant Owner Alerts (Free)")
-    ntfy_topic = st.text_input("Free Phone/Web Alert Topic (ntfy.sh)", value=qp.get("ntfy", ""), placeholder="e.g., deba-leads-9732")
+    owner_email = st.text_input("Owner Email (For Direct Inquiry Button)", value=qp.get("email", ""), placeholder="you@gmail.com")
+    ntfy_topic = st.text_input("Phone/Browser Push Topic (ntfy.sh)", value=qp.get("ntfy", ""), placeholder="e.g., deba-leads-9732")
     tg_bot_token = st.text_input("Telegram Bot Token (Optional)", value=qp.get("tg_tok", ""), type="password")
     tg_chat_id = st.text_input("Telegram Chat ID (Optional)", value=qp.get("tg_id", ""), placeholder="123456789")
 
@@ -36,12 +36,14 @@ with st.sidebar:
             "biz": company_name,
             "offer": offer_desc,
             "cal": booking_link,
+            "email": owner_email,
             "ntfy": ntfy_topic,
             "tg_tok": tg_bot_token,
             "tg_id": tg_chat_id,
         })
-        st.success("✅ Saved! Bookmark this page so your settings stay forever.")
-        
+        st.success("✅ Saved! Bookmark this page so your settings stay even if you minimize.")
+
+
 def ask_gemini(client, prompt):
     for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
         try:
@@ -56,13 +58,13 @@ def ask_gemini(client, prompt):
                 time.sleep(2)
                 continue
             raise e
-    raise RuntimeError("AI servers are temporarily busy. Please try again in 5 seconds.")
+    raise RuntimeError("AI servers are busy. Please try again in 5 seconds.")
 
 
 def send_owner_alert(lead):
     channels = []
     msg = (
-        f"🔥 HOT LEAD ({lead.get('intent_score', 'N/A')}/10)\n"
+        f"HOT LEAD ({lead.get('intent_score', 'N/A')}/10)\n"
         f"Name: {lead.get('name')}\n"
         f"Email: {lead.get('email')}\n"
         f"Company/Phone: {lead.get('company')}\n"
@@ -129,7 +131,7 @@ with tab1:
                             time.sleep(1)
 
                     if not raw_results:
-                        st.error("Search engine rate-limited temporarily. Wait 5 seconds and click Find & Qualify Leads again.")
+                        st.error("Search rate-limited temporarily. Wait 5 seconds and click Find & Qualify Leads again.")
                         st.stop()
 
                     cta = f"End by inviting them to book a call: {booking_link}" if booking_link else "End by asking for a quick 10-min chat."
@@ -185,6 +187,10 @@ with tab2:
                 st.info(data["suggested_reply"])
                 if booking_link:
                     st.link_button("📅 Book a Call Directly", booking_link)
+                if owner_email:
+                    sub_q = urllib.parse.quote(f"New Inquiry from {name}")
+                    bod_q = urllib.parse.quote(f"Name: {name}\nEmail: {email}\nPhone/Company: {company}\nMessage: {message}")
+                    st.link_button("✉️ Also Send Directly via Gmail", f"https://google.com{urllib.parse.quote(owner_email)}&su={sub_q}&body={bod_q}")
                 if channels:
                     st.caption(f"🔔 Owner alerted via: {', '.join(channels)}")
             except Exception as e:
