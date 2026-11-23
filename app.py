@@ -769,4 +769,88 @@ def show_admin_dashboard():
 
 with st.sidebar:
 
-    s
+    st.title("NEXORA")
+    st.caption("AI Automation Agency")
+
+    page = st.radio(
+        "Navigation",
+        [
+            "📩 Contact NEXORA",
+            "🔐 Admin Login",
+            "🚀 Lead Finder",
+            "📊 Lead Dashboard"
+        ]
+    )
+
+    st.divider()
+
+    st.write("**System status**")
+
+    st.write(
+        "Gemini:",
+        "🟢 Configured" if GEMINI_KEY else "🔴 Not configured"
+    )
+
+    st.write(
+        "Email:",
+        "🟢 Configured" if email_is_configured()
+        else "🔴 Not configured"
+    )
+
+    st.write(
+        "Google Sheets:",
+        "🟢 Configured" if GOOGLE_SHEET_ID
+        else "⚪ Optional"
+    )
+
+
+if page == "📩 Contact NEXORA":
+
+    show_contact_form()
+
+elif page == "🔐 Admin Login":
+
+    st.header("🔐 Agency Owner Login")
+
+    if not ADMIN_PASSWORD:
+
+        st.error(
+            "Admin password is not configured. "
+            "Add ADMIN_PASSWORD to Streamlit Secrets."
+        )
+
+    else:
+
+        password = st.text_input(
+            "Admin Password",
+            type="password"
+        )
+
+        if st.button("Login"):
+
+            if password == ADMIN_PASSWORD:
+                st.session_state["admin_authenticated"] = True
+                st.success("Admin access granted.")
+            else:
+                st.session_state["admin_authenticated"] = False
+                st.error("Incorrect password.")
+
+elif page == "🚀 Lead Finder":
+
+    if st.session_state.get("admin_authenticated", False):
+        show_outbound_finder()
+    else:
+        st.warning("Please log in as the agency owner first.")
+
+elif page == "📊 Lead Dashboard":
+
+    if st.session_state.get("admin_authenticated", False):
+        show_admin_dashboard()
+    else:
+        st.warning("Please log in as the agency owner first.")
+
+st.divider()
+
+st.caption(
+    "© NEXORA AUTOMATIONS | AI-powered business solutions"
+            )
