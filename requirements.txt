@@ -1,4 +1,6 @@
+```text
 streamlit
 google-genai
 ddgs
 pandas
+requests
