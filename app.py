@@ -21,7 +21,7 @@ with st.sidebar:
     company_name = st.text_input("Business Name", placeholder="e.g., Acme Solutions")
     offer_desc = st.text_area("What do you sell?", placeholder="e.g., AI lead generation systems")
     booking_link = st.text_input("Calendar Link (Optional)", placeholder="https://cal.com")
-        st.divider()
+    st.divider()
     st.header("3. Instant Owner Alerts (Free)")
     ntfy_topic = st.text_input(
         "Free Phone/Web Alert Topic (ntfy.sh)",
